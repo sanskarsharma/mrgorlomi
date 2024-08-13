@@ -1,0 +1,4 @@
+venv/
+rough/
+*.pyc
+*.env
