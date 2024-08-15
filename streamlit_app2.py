@@ -2,60 +2,19 @@ import streamlit as st
 import json
 import os
 from datetime import datetime
-import openai  # You'll need to install this: pip install openai
+import openai  # You'll need to install this: pip install openai -- upgrade (version req for this script is higher)
+from dotenv import load_dotenv
+import random
+
+load_dotenv()
 
 openai_client = openai.OpenAI(
-    api_key="<insert_api_key>",
+    api_key=os.environ['OPENAI_API_KEY'],
     max_retries=5,
     timeout=10  # 7 seconds timeout
 )
 
-# Function to load data from JSON file
-def load_data():
-    if os.path.exists('hackathon_data.json'):
-        with open('hackathon_data.json', 'r') as f:
-            return json.load(f)
-    return {"teams": [], "participants": []}
-
-# Function to save data to JSON file
-def save_data(data):
-    with open('hackathon_data.json', 'w') as f:
-        json.dump(data, f)
-
-# Function to create a new team
-def create_team(data, team_name, idea, creator):
-    if any(team['name'] == team_name for team in data['teams']):
-        return f"A team with the name '{team_name}' already exists. Please choose a different name."
-    if any(participant['name'] == creator for participant in data['participants']):
-        return f"You are already in a team. You cannot create a new team."
-    team = {
-        "name": team_name,
-        "idea": idea,
-        "members": [creator],
-        "created_at": datetime.now().isoformat()
-    }
-    data["teams"].append(team)
-    data["participants"].append({"name": creator, "team": team_name})
-    save_data(data)
-    return f"Team '{team_name}' has been created" + (f" with the idea: {idea}" if idea else " without an idea")
-
-# Function to join an existing team
-def join_team(data, team_name, participant):
-    for team in data["teams"]:
-        if team["name"] == team_name:
-            if any(p["name"] == participant for p in data["participants"]):
-                return "You are already in a team. You cannot join another team."
-            team["members"].append(participant)
-            data["participants"].append({"name": participant, "team": team_name})
-            save_data(data)
-            return f"You have successfully joined the team '{team_name}'."
-    return f"Team '{team_name}' not found."
-
-# Function to list all teams and ideas
-def list_teams(data):
-    if not data["teams"]:
-        return "There are no teams created yet."
-    return "\n".join([f"Team: {team['name']}" + (f", Idea: {team['idea']}" if team['idea'] else ", No idea yet") + f", Members: {', '.join(team['members'])}" for team in data["teams"]])
+from core.json.hackathon_json import list_teams, create_team, join_team, load_data, get_unassigned_participants
 
 # Function to generate LLM prompt and get response
 def get_llm_response(user_input, data, context=None):
@@ -165,8 +124,13 @@ def process_input(user_input, data, context=None):
         return f"{result}\n\nIs there anything else you'd like to do?"
     elif llm_response["action"] == "list_ideas":
         return list_teams(data)
-    elif llm_response["action"] == "start_join_team":
-        return llm_response["message"]
+    elif llm_response["action"] == "join_team":
+        if "team_name" in llm_response:
+            return join_team(data, llm_response["team_name"], st.session_state.username)
+        else:
+            return llm_response["message"]
+    elif llm_response["action"] == "list_velle":
+        return get_unassigned_participants(data)
     else:  # clarify
         return llm_response["message"]
 
@@ -180,11 +144,7 @@ def main():
     if 'data' not in st.session_state:
         st.session_state.data = load_data()
     if 'username' not in st.session_state:
-        st.session_state.username = ""
-    if 'context' not in st.session_state:
-        st.session_state.context = None
-    if 'team_name' not in st.session_state:
-        st.session_state.team_name = None
+        st.session_state.username = random.choice(["Alice", "Bob", "Charlie", "David", "Eve"]) # this will always be present in case of slack
 
     # Username input
     if not st.session_state.username:

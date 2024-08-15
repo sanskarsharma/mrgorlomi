@@ -2,3 +2,4 @@ venv/
 rough/
 *.pyc
 *.env
+*.db
