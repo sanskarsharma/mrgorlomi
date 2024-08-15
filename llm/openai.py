@@ -26,11 +26,11 @@ class OpenAILLM:
         2. List team along with their members (list_teams)
         3. Join a team (join_team)
         4. List participants who don't belong to any team (get_unassigned_participants)
-        5. Leave the curretn team which user belongs to (leave_current_team)
+        5. Leave the current team which user belongs to (leave_current_team)
         6. Delete user's team (delete_my_team)
 
         If the user wants to create a team, figure out the team name from their response or ask if team name is not provided.
-        If the user wants to join a team, igure out the team name from their response or ask if team name is not provided.
+        If the user wants to join a team, figure out the team name from their response or ask if team name is not provided.
         If the user's intent is unclear, ask for clarification. Be sassy when asking for clarification. 
 
         Respond in the following JSON format:
