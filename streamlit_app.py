@@ -45,6 +45,20 @@ def write_top_bar():
     with col3:
         clear = st.button("Clear Chat")
 
+    # Display user guidance
+    with st.expander("🔍 What can I do?", expanded=True):
+        st.markdown("""
+            Here are the actions you can take:
+
+            1. **Create a team**: Say something like "I want to create a team" or "Let's make a new team".
+            2. **Join a team**: Say "I'd like to join a team" or "Can I join an existing team?".
+            3. **List all teams**: Ask "What teams are there?" or "Show me all the teams".
+            4. **Get help**: If you're unsure, just ask "What can I do?" or "Help me get started".
+
+            Just type your request in the chat box below, and I'll guide you through the process!
+            """
+        )
+
     return clear
 
 
