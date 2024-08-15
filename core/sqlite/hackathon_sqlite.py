@@ -13,6 +13,16 @@ CREATE TABLE if not exists teams (
     FOREIGN KEY (captain_username) REFERENCES participants(username)
 );
 
+CREATE TABLE IF NOT EXISTS ideas (
+    idea_id TEXT PRIMARY KEY,
+    team_id TEXT NOT NULL,
+    idea_text TEXT NOT NULL,
+    created_by TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (team_id) REFERENCES teams(team_id),
+    FOREIGN KEY (created_by) REFERENCES participants(username)
+);
+
 CREATE TABLE if not exists participants (
     username TEXT PRIMARY KEY,
     team_id TEXT,
@@ -229,6 +239,81 @@ class HackathonSQLite(HackathonBase):
             return True
         except sqlite3.Error as e:
             self.conn.rollback()
+            raise HackathonError(str(e))
+
+    def add_idea_to_team(self, username: str, idea_text: str) -> str:
+        try:
+            # Check if the user is in a team
+            self.cursor.execute("SELECT team_id FROM participants WHERE username = ?", (username,))
+            user_team = self.cursor.fetchone()
+            if not user_team or user_team[0] is None:
+                raise HackathonError("You must be in a team to add an idea. Hury and join a team soon!")
+
+            team_id = user_team[0]
+            idea_id = str(uuid.uuid4())
+
+            self.cursor.execute("""
+                INSERT INTO ideas (idea_id, team_id, idea_text, created_by)
+                VALUES (?, ?, ?, ?)
+            """, (idea_id, team_id, idea_text, username))
+
+            self.conn.commit()
+            return f"Your Idea {idea_text} is successfully added"
+        except sqlite3.Error as e:
+            self.conn.rollback()
+            raise HackathonError(str(e))
+
+    def edit_idea(self, username: str, idea_id: str, new_idea_text: str) -> str:
+        try:
+            # Check if the idea exists and belongs to the user's team
+            self.cursor.execute("""
+                SELECT i.team_id, i.created_by, p.team_id
+                FROM ideas i
+                JOIN participants p ON p.username = ?
+                WHERE i.idea_id = ?
+            """, (username, idea_id))
+
+            result = self.cursor.fetchone()
+            if not result:
+                raise HackathonError("You don't have any idea kiddo to change, sad.")
+
+            idea_team_id, idea_creator, user_team_id = result
+            if idea_team_id != user_team_id:
+                raise HackathonError("You can only edit ideas for your own team. Got it?")
+
+            self.cursor.execute("""
+                UPDATE ideas
+                SET idea_text = ?
+                WHERE idea_id = ?
+            """, (new_idea_text, idea_id))
+
+            self.conn.commit()
+            return "Idea updated successfully"
+        except sqlite3.Error as e:
+            self.conn.rollback()
+            raise HackathonError(str(e))
+
+    def list_team_ideas(self, username: str) -> str:
+        try:
+            self.cursor.execute("""
+                SELECT i.idea_id, i.idea_text, i.created_by, i.created_at
+                FROM ideas i
+                JOIN participants p ON p.team_id = i.team_id
+                WHERE p.username = ?
+                ORDER BY i.created_at DESC
+            """, (username,))
+
+            ideas = self.cursor.fetchall()
+            if not ideas:
+                return "Your team doesn't have any ideas yet. Get going!"
+
+            idea_list = "Your team's ideas:\n\n"
+            for idea in ideas:
+                idea_list += f"Idea: {idea[1]}\n\n"
+                idea_list += f"Created by: {idea[2]}\n\n"
+
+            return idea_list.strip()
+        except sqlite3.Error as e:
             raise HackathonError(str(e))
 
     def __del__(self):

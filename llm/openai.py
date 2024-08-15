@@ -28,15 +28,22 @@ class OpenAILLM:
         4. List participants who don't belong to any team (get_unassigned_participants)
         5. Leave the current team which user belongs to (leave_current_team)
         6. Delete user's team (delete_my_team)
+        7. Add an idea to the user's team (add_idea)
+        8. Edit an idea in the user's team (edit_idea)
+        9. List ideas of the user's team (list_ideas)
 
         If the user wants to create a team, figure out the team name from their response or ask if team name is not provided.
         If the user wants to join a team, figure out the team name from their response or ask if team name is not provided.
+        If the user wants to add an idea, ask for the idea text if not provided.
+        If the user wants to edit an idea, ask for the idea ID and the new idea text if not provided.
         If the user's intent is unclear, ask for clarification. Be sassy when asking for clarification. 
 
         Respond in the following JSON format:
         {{
-            "action": "create_team" or "list_teams" or "join_team" or "get_unassigned_participants" or "leave_current_team" or "delete_my_team" or "clarify",
+            "action": "create_team" or "list_teams" or "join_team" or "get_unassigned_participants" or "leave_current_team" or "delete_my_team" or "add_idea" or "edit_idea" or "list_ideas" or "clarify",
             "team_name": "extracted team name" (if applicable),
+            "idea_text": "extracted idea text" (if applicable),
+            "idea_id": "extracted idea ID" (if applicable),
             "message": "a friendly message to the user based on their intent"
         }}
         """
@@ -89,6 +96,23 @@ class OpenAILLM:
                     raise HackathonError("Could not delete team, please try again.")
                 return f'You have deleted your team successfully', num_tokens
 
+            elif llm_response["action"] == "add_idea":
+                if "idea_text" in llm_response and llm_response.get("idea_text"):
+                    result = self.get_hackathon_database_connection().add_idea_to_team(username, llm_response["idea_text"])
+                    return result, num_tokens
+                else:
+                    return llm_response["message"], num_tokens
+
+            elif llm_response["action"] == "edit_idea":
+                if "idea_id" in llm_response and "idea_text" in llm_response:
+                    result = self.get_hackathon_database_connection().edit_idea(username, llm_response["idea_id"], llm_response["idea_text"])
+                    return result, num_tokens
+                else:
+                    return llm_response["message"], num_tokens
+
+            elif llm_response["action"] == "list_ideas":
+                result = self.get_hackathon_database_connection().list_team_ideas(username)
+                return result, num_tokens
             else:  # clarify
                 return llm_response["message"], num_tokens
         except HackathonError as e:

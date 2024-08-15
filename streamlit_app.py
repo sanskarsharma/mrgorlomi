@@ -53,7 +53,12 @@ def write_top_bar():
             1. **Create a team**: Say something like "I want to create a team" or "Let's make a new team".
             2. **Join a team**: Say "I'd like to join a team" or "Can I join an existing team?".
             3. **List all teams**: Ask "What teams are there?" or "Show me all the teams".
-            4. **Get help**: If you're unsure, just ask "What can I do?" or "Help me get started".
+            4. **Add an idea**: Say "I want to add an idea to my team" or "I have a new idea".
+            5. **Edit an idea**: Say "I need to edit an idea" or "Can I change an idea?".
+            6. **List team ideas**: Ask "What ideas does my team have?" or "Show me our ideas".
+            7. **Leave a team**: Say "I want to leave my team" or "How do I exit my current team?".
+            8. **Delete a team**: Say "I want to delete my team" (only for team captains).
+            9. **Get help**: If you're unsure, just ask "What can I do?" or "Help me get started".
 
             Just type your request in the chat box below, and I'll guide you through the process!
             """
