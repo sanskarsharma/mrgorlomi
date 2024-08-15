@@ -1,10 +1,10 @@
 import streamlit as st
-import uuid
 from dotenv import load_dotenv
-
+import random
 
 USER_ICON = "assets/user-icon.png"
 AI_ICON = "assets/bot-icon.png"
+random_usernames = ["Abhishek", "Shishi Lion", "Sanskar", "Shreyansh", "Khushi", "Yitzhak"]
 load_dotenv()
 
 
@@ -16,7 +16,7 @@ llm = OpenAILLM()
 if "user_id" in st.session_state:
     user_id = st.session_state["user_id"]
 else:
-    user_id = str(uuid.uuid4())
+    user_id = random.choice(random_usernames)
     st.session_state["user_id"] = user_id
 
 if "llm_chain" not in st.session_state:
@@ -34,10 +34,14 @@ if "input" not in st.session_state:
 
 
 def write_top_bar():
-    col1, col2, col3 = st.columns([2, 10, 3])
+    col2, col3 = st.columns([12, 3])
+
     with col2:
-        header = "Mr Gorlomi"
+        header = "Talk to Mr. Gorlomi"
         st.write(f"<h3 class='main-header'>{header}</h3>", unsafe_allow_html=True)
+        st.write(f"<p>Mr Gorlomi (He pretends to be italian, pls entertain his sass) is here to help you with <i>teaming up for the hackathon</i></p>", unsafe_allow_html=True)
+        st.write(f"<p>Your random assigned username for this session is <b>{st.session_state['user_id']}</b></p>", unsafe_allow_html=True)
+
     with col3:
         clear = st.button("Clear Chat")
 
@@ -57,7 +61,7 @@ def handle_input():
     input = st.session_state.input
 
     llm_chain = st.session_state["llm_chain"]
-    result, amount_of_tokens = llm.get_conversation(chain=llm_chain, prompt=input)
+    result, amount_of_tokens = llm.get_conversation(chain=llm_chain, prompt=input, username=st.session_state["user_id"])
     question_with_id = {
         "question": input,
         "id": len(st.session_state.questions),
@@ -86,7 +90,7 @@ def render_answer(answer):
     with col1:
         st.image(AI_ICON, use_column_width="always")
     with col2:
-        st.info(answer["response"])
+        st.info(answer)
 
 
 def write_chat_message(md):
@@ -103,5 +107,5 @@ with st.container():
 
 st.markdown("---")
 input = st.text_input(
-    "You are talking to an AI, ask any question.", key="input", on_change=handle_input
+    f"Say stuff", key="input", on_change=handle_input
 )
