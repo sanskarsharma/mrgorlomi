@@ -2,8 +2,11 @@ import sqlite3
 from typing import Dict, List, Tuple
 import uuid
 from core.hackathon_base import HackathonBase, HackathonError
+import logging
+import os
 
-data_filepath = 'core/sqlite/hackathon_data.db'
+
+logger = logging.getLogger(__name__)
 
 init_script = """
 CREATE TABLE if not exists teams (
@@ -25,6 +28,8 @@ CREATE TABLE IF NOT EXISTS ideas (
 
 CREATE TABLE if not exists participants (
     username TEXT PRIMARY KEY,
+    full_name TEXT,
+    bio TEXT,
     team_id TEXT,
     FOREIGN KEY (team_id) REFERENCES teams(team_id)
 );
@@ -49,21 +54,14 @@ BEGIN
         WHERE team_id = NEW.team_id
     ) >= 5;
 END;
-
-INSERT OR IGNORE INTO participants (username)
-VALUES 
-    ('Abhishek'),
-    ('Shishi Lion'),
-    ('Sanskar'),
-    ('Shreyansh'),
-    ('Khushi'),
-    ('Yitzhak');
-
 """
+
 
 class HackathonSQLite(HackathonBase):
     def __init__(self):
-        self.conn = sqlite3.connect(data_filepath)
+
+        # ensure DB schema is setup
+        self.conn = sqlite3.connect(os.environ["SQLITE_DB_FILEPATH"])
         self.conn.execute("PRAGMA foreign_keys = ON")
         self.conn.executescript(init_script)
         self.cursor = self.conn.cursor()
@@ -91,7 +89,7 @@ class HackathonSQLite(HackathonBase):
             if "UNIQUE constraint failed: teams.team_name" in str(e):
                 raise HackathonError("Team name already exists.")
             elif "UNIQUE constraint failed: teams.captain_username" in str(e):
-                raise HackathonError("User is already a captain of another team.")
+                raise HackathonError("You are already a captain of another team.")
             else:
                 raise HackathonError(str(e))
         except sqlite3.Error as e:
@@ -101,13 +99,11 @@ class HackathonSQLite(HackathonBase):
     def join_team(self, team_name: str, username: str) -> bool:
         try:
 
-            print('log 1111')
             # Check if the user is already in a team
             self.cursor.execute("SELECT team_id FROM participants WHERE username = ?", (username,))
             existing_team = self.cursor.fetchone()
             if existing_team and existing_team[0] is not None:
-                raise HackathonError("User is already in a team.")
-            print('log 2222')
+                raise HackathonError("You are already in a team. Either leave/delete your team first.")
 
             # Use LOWER and LIKE for case-insensitive, partial matching of team name
             self.cursor.execute("""
@@ -116,26 +112,21 @@ class HackathonSQLite(HackathonBase):
             """, (f"%{team_name}%",))
             
             team_results = self.cursor.fetchall()
-            print('log 3333')
             if not team_results:
                 raise HackathonError("No matching team found.")
             elif len(team_results) > 1:
                 raise HackathonError("Multiple matching teams found. Please provide a more specific team name.")
-            print('log 4444')
 
             team_id = team_results[0][0]
 
             # Check if the team has less than 5 members
             if self._get_team_size(team_id) >= 5:
                 raise HackathonError("Team already has the maximum of 5 members.")
-            print('log 5555')
 
             self.cursor.execute("UPDATE participants SET team_id = ? WHERE username = ?",
                                 (team_id, username))
-            print('log 6666')
 
             self.conn.commit()
-            print('log 7777')
             return True
         except sqlite3.Error as e:
             self.conn.rollback()
@@ -167,7 +158,10 @@ class HackathonSQLite(HackathonBase):
     def list_teams(self) -> str:
         try:
             self.cursor.execute("""
-                SELECT t.team_name, t.captain_username, p.username
+                SELECT
+                    t.team_name, 
+                    (select full_name from participants where username = t.captain_username) as captain, 
+                    p.full_name
                 FROM teams t
                 LEFT JOIN participants p ON t.team_id = p.team_id
             """)
@@ -188,7 +182,7 @@ class HackathonSQLite(HackathonBase):
 
     def get_unassigned_participants(self) -> List[str]:
         try:
-            self.cursor.execute("SELECT username FROM participants WHERE team_id IS NULL")
+            self.cursor.execute("SELECT full_name FROM participants WHERE team_id IS NULL")
             return [row[0] for row in self.cursor.fetchall()]
         except sqlite3.Error as e:
             raise HackathonError(str(e))
@@ -198,7 +192,7 @@ class HackathonSQLite(HackathonBase):
             self.cursor.execute("SELECT team_id FROM participants WHERE username = ?", (username,))
             team = self.cursor.fetchone()
             if not team or team[0] is None:
-                raise HackathonError("User is not in any team.")
+                raise HackathonError("You are not a member in any team.")
 
             team_id = team[0]
 
@@ -320,4 +314,4 @@ class HackathonSQLite(HackathonBase):
         try:
             self.cursor.close()
         except sqlite3.Error as e:
-            print(e)
+            logger.error(e)

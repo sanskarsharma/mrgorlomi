@@ -7,6 +7,11 @@ from langchain.prompts import PromptTemplate
 
 from core.sqlite.hackathon_sqlite import HackathonSQLite, HackathonError
 import json
+import logging
+import traceback
+
+logger = logging.getLogger(__name__)
+
 
 class OpenAILLM:
 
@@ -81,8 +86,9 @@ class OpenAILLM:
                     return llm_response["message"], num_tokens
 
             elif llm_response["action"] == "get_unassigned_participants":
-                ll = self.get_hackathon_database_connection().get_unassigned_participants()
-                return f'Unassigned folks are {str(ll)}', num_tokens
+                userlist = self.get_hackathon_database_connection().get_unassigned_participants()
+                userlist_str = "\n".join(userlist)
+                return f'Unassigned folks are: \n {userlist_str}', num_tokens
 
             elif llm_response["action"] == "leave_current_team":
                 success = self.get_hackathon_database_connection().leave_current_team(username)
@@ -116,34 +122,12 @@ class OpenAILLM:
             else:  # clarify
                 return llm_response["message"], num_tokens
         except HackathonError as e:
+            logger.error('handle failed: %s\n %s', str(e), traceback.format_exc())
             return str(e), num_tokens
 
-    ## This uses json as data. import right funcs if you need to use test this
-    # def get_conversation(self, chain: ConversationChain, prompt: str, username: str):
-    #     num_tokens = chain.llm.get_num_tokens(prompt)
-    #     response = chain({"input": prompt})
-
-    #     print(response)
-
-    #     llm_response = json.loads(response['response'])
-
-    #     data = load_data()
-    #     if llm_response["action"] == "create_team":
-    #         if "team_name" in llm_response and llm_response.get("team_name"):
-    #             return create_team(data, llm_response["team_name"], "random idea", username), num_tokens
-    #         else:
-    #             return llm_response["message"], num_tokens
-    #     elif llm_response["action"] == "list_teams":
-    #         return list_teams(data), num_tokens
-    #     elif llm_response["action"] == "join_team":
-    #         if "team_name" in llm_response and llm_response.get("team_name"):
-    #             return join_team(data, llm_response["team_name"], username), num_tokens
-    #         else:
-    #             return llm_response["message"], num_tokens
-    #     elif llm_response["action"] == "list_velle":
-    #         return get_unassigned_participants(data), num_tokens
-    #     else:  # clarify
-    #         return llm_response["message"], num_tokens
+        except Exception as e:
+            logger.error('handle failed: %s\n %s', str(e), traceback.format_exc())
+            return 'Oopsiedoodle, some error occured, pls try again', num_tokens
 
     def get_conversation_chain(self) -> ConversationChain:
         
