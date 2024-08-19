@@ -58,7 +58,7 @@ if __name__ == "__main__":
         token=os.environ.get("SLACK_BOT_TOKEN"),
         ssl=ssl.create_default_context(cafile=certifi.where()))
 
-    users_csv_filepath = "data/slack_users.csv"
+    users_csv_filepath = "slack_users.csv"
     if os.path.getsize(users_csv_filepath) == 0:
         success = write_slack_users_to_csv(client)
         if success:

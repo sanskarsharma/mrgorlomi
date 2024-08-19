@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+
+  mrgorlomi:
+    image: mrgorlomi:local
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - sqlite-data:/mrgorlomi:rw
+      - ./participants.csv:/mrgorlomi/participants.csv
+
+    command: ["python", "slackbot.py"]
+
+volumes:
+  sqlite-data:

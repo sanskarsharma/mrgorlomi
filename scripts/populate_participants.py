@@ -41,5 +41,5 @@ if __name__ == "__main__":
 
 '''
 USAGE
-    python scripts/populate_participants.py data/hackathon.db data/participants.csv
+    python scripts/populate_participants.py hackathon.db participants.csv
 '''

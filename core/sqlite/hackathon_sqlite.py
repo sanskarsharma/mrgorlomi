@@ -4,6 +4,8 @@ import uuid
 from core.hackathon_base import HackathonBase, HackathonError
 import logging
 import os
+import sys
+import csv
 
 
 logger = logging.getLogger(__name__)
@@ -60,11 +62,32 @@ END;
 class HackathonSQLite(HackathonBase):
     def __init__(self):
 
+        self.sqlite_db_filepath = "hackathon_data.db"
+        self.participants_csv_filepath = "participants.csv"
+
         # ensure DB schema is setup
-        self.conn = sqlite3.connect(os.environ["SQLITE_DB_FILEPATH"])
+        self.conn = sqlite3.connect(self.sqlite_db_filepath)
         self.conn.execute("PRAGMA foreign_keys = ON")
         self.conn.executescript(init_script)
         self.cursor = self.conn.cursor()
+
+        if os.path.getsize(self.sqlite_db_filepath) == 0 or  os.path.getsize(self.participants_csv_filepath) == 0:
+            logger.error("Filepaths provided are either empty or does not exist.")
+            sys.exit(1)
+
+        with open(self.participants_csv_filepath, 'r', newline='', encoding='utf-8') as csvfile :
+            csvreader = csv.DictReader(csvfile)
+            to_insert = []
+            
+            # loop and prepare data
+            for i, row in enumerate(csvreader):
+                to_insert.append((row['username'], row['full_name'], row['bio']))
+            
+            # insert if not already present
+            self.conn.executemany("""
+                INSERT OR IGNORE INTO participants (username, full_name, bio) VALUES (?, ?, ?)
+                """, to_insert)
+            self.conn.commit()
 
     def create_team(self, team_name: str, captain_username: str) -> Tuple[str, str]:
         if len(team_name) > 100:
@@ -91,10 +114,10 @@ class HackathonSQLite(HackathonBase):
             elif "UNIQUE constraint failed: teams.captain_username" in str(e):
                 raise HackathonError("You are already a captain of another team.")
             else:
-                raise HackathonError(str(e))
+                raise HackathonError('Some error occured, pls try later')
         except sqlite3.Error as e:
             self.conn.rollback()
-            raise HackathonError(str(e))
+            raise HackathonError('Some error occured, pls try later')
 
     def join_team(self, team_name: str, username: str) -> bool:
         try:
@@ -130,7 +153,7 @@ class HackathonSQLite(HackathonBase):
             return True
         except sqlite3.Error as e:
             self.conn.rollback()
-            raise HackathonError(str(e))
+            raise HackathonError('Some error occured, pls try later')
 
     def _get_team_size(self, team_id: str) -> int:
         self.cursor.execute("SELECT COUNT(*) FROM participants WHERE team_id = ?", (team_id,))
@@ -178,14 +201,14 @@ class HackathonSQLite(HackathonBase):
             team_list = [{"team_name": k, **v} for k, v in teams.items()]
             return self.__get_formatted_list_team_text(team_list)
         except sqlite3.Error as e:
-            raise HackathonError(str(e))
+            raise HackathonError('Some error occured, pls try later')
 
     def get_unassigned_participants(self) -> List[str]:
         try:
             self.cursor.execute("SELECT full_name FROM participants WHERE team_id IS NULL")
             return [row[0] for row in self.cursor.fetchall()]
         except sqlite3.Error as e:
-            raise HackathonError(str(e))
+            raise HackathonError('Some error occured, pls try later')
 
     def leave_current_team(self, username: str) -> bool:
         try:
@@ -209,7 +232,7 @@ class HackathonSQLite(HackathonBase):
             return True
         except sqlite3.Error as e:
             self.conn.rollback()
-            raise HackathonError(str(e))
+            raise HackathonError('Some error occured, pls try later')
 
     def delete_my_team(self, username: str) -> bool:
         try:
@@ -233,7 +256,7 @@ class HackathonSQLite(HackathonBase):
             return True
         except sqlite3.Error as e:
             self.conn.rollback()
-            raise HackathonError(str(e))
+            raise HackathonError('Some error occured, pls try later')
 
     def add_idea_to_team(self, username: str, idea_text: str) -> str:
         try:
@@ -255,7 +278,7 @@ class HackathonSQLite(HackathonBase):
             return f"Your Idea {idea_text} is successfully added"
         except sqlite3.Error as e:
             self.conn.rollback()
-            raise HackathonError(str(e))
+            raise HackathonError('Some error occured, pls try later')
 
     def edit_idea(self, username: str, idea_id: str, new_idea_text: str) -> str:
         try:
@@ -285,7 +308,7 @@ class HackathonSQLite(HackathonBase):
             return "Idea updated successfully"
         except sqlite3.Error as e:
             self.conn.rollback()
-            raise HackathonError(str(e))
+            raise HackathonError('Some error occured, pls try later')
 
     def list_team_ideas(self, username: str) -> str:
         try:
@@ -308,7 +331,7 @@ class HackathonSQLite(HackathonBase):
 
             return idea_list.strip()
         except sqlite3.Error as e:
-            raise HackathonError(str(e))
+            raise HackathonError('Some error occured, pls try later')
 
     def __del__(self):
         try:
