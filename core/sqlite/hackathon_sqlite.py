@@ -62,8 +62,8 @@ END;
 class HackathonSQLite(HackathonBase):
     def __init__(self):
 
-        self.sqlite_db_filepath = "hackathon_data.db"
-        self.participants_csv_filepath = "participants.csv"
+        self.sqlite_db_filepath = "data/hackathon_data.db"
+        self.participants_csv_filepath = "data/participants.csv"
 
         # ensure DB schema is setup
         self.conn = sqlite3.connect(self.sqlite_db_filepath)

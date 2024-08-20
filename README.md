@@ -17,7 +17,7 @@ SLACK_BOT_USER_ID='U1234ABCD'
 LOG_LEVEL='INFO'
 ```
 
-2. Create a `participants.csv` file in root directory with below strcutre (data is sample)
+2. Create a /data directory and put `participants.csv` file in it with below strcutre (sample data below)
 ```csv
 username,full_name,bio
 U1234ABCD,Sanskar Sharma,Abcd
@@ -43,7 +43,7 @@ python slackbot.py
 ```
 
 ### Maintenance & Data
-All of the data gathered by bot will be stored in a sqlite DB file "hackathon_data.db".
+All of the data gathered by bot will be stored in a sqlite DB file in data directory, i.e "data/hackathon_data.db".
 
 To make the bot operational for slack, we need to pre-fill/update data for participants table. This is also done at the startup 
 

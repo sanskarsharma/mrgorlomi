@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
 
 RUN mkdir -p /mrgorlomi
 WORKDIR /mrgorlomi
+RUN mkdir -p /mrgorlomi/data
 
 COPY requirements.txt /mrgorlomi
 RUN pip install --no-cache-dir -r requirements.txt
