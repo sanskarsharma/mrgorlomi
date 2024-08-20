@@ -9,7 +9,7 @@ services:
       - .env
     volumes:
       - sqlite-data:/mrgorlomi/data:rw
-      - ./participants.csv:/mrgorlomi/participants.csv
+      - ./data/participants.csv:/mrgorlomi/data/participants.csv
 
     command: ["python", "slackbot.py"]
 
