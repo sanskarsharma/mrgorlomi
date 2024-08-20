@@ -2,51 +2,56 @@ from slack_sdk.errors import SlackApiError
 from dotenv import load_dotenv
 import logging
 import os
-import json
 import csv
 import ssl
 import certifi
 import logging
 from slack_sdk import WebClient
 
+logging.basicConfig()
+logging.getLogger().setLevel(os.environ.get("LOG_LEVEL", "INFO"))
 logger = logging.getLogger(__name__)
 
 
-def write_slack_users_to_csv(client, filename):
+def fetch_all_active_slack_users_to_csv(client, filename="slack_users.csv"):
     try:
-        # Call the users.list method using the WebClient
-        result = client.users_list()
-        users = result["members"]
+        all_users = []
+        cursor = None
+        
+        while True:
+            # Fetch users with pagination
+            result = client.users_list(limit=1000, cursor=cursor)
+            users = result["members"]
+            
+            for user in users:
+                if (not user.get('is_bot', False) and 
+                    not user.get('deleted', False) and 
+                    user['id'] != 'USLACKBOT' and
+                    user.get('is_active', True)):  # Check if user is active
+                    all_users.append(user)
+            
+            # Check if there are more users to fetch
+            cursor = result.get("response_metadata", {}).get("next_cursor")
+            if not cursor:
+                break
 
-        logger.info(json.dumps(users, indent=4, sort_keys=True))
-
-        # Open the CSV file
+        # Write users to CSV
         with open(filename, mode='w', newline='', encoding='utf-8') as file:
-            writer = csv.DictWriter(file, fieldnames=["username", "full_name", "bio"])
+            writer = csv.DictWriter(file, fieldnames=["user_id", "full_name", "bio"])
             writer.writeheader()
 
-            for user in users:
-                # Check if the user is not a bot
-                if not user.get('is_bot', False) \
-                    and not user.get('deleted', False) \
-                    and user['id'] != 'USLACKBOT':
+            for user in all_users:
+                writer.writerow({
+                    "user_id": user.get("id"),
+                    "full_name": user.get("real_name"),
+                    "bio": user.get("profile", {}).get("title")
+                })
 
-                    logger.info(json.dumps(user, indent=4, sort_keys=True))
-                    user_info = {
-                        "username": user.get("id"),
-                        "full_name": user.get("real_name"),
-                        "bio": user.get("profile", {}).get("title")
-                    }
-                    writer.writerow(user_info)
-
-        logger.info(f"User information has been written to {filename}")
+        print(f"All active user information has been written to {filename}")
+        print(f"Total active users fetched: {len(all_users)}")
         return True
-
     except SlackApiError as e:
-        logger.error(f"Error: {e}")
-        return False
-    except IOError as e:
-        logger.error(f"Error writing to file: {e}")
+        print(f"Error fetching users from Slack: {e}")
         return False
 
 
@@ -58,15 +63,18 @@ if __name__ == "__main__":
         token=os.environ.get("SLACK_BOT_TOKEN"),
         ssl=ssl.create_default_context(cafile=certifi.where()))
 
+    # if os.path.isfile(users_csv_filepath) and os.path.getsize(users_csv_filepath) == 0:
+    #     pass
+    # else:
+    #     logger.info("Slack users already in CSV, not calling slack API")
+
     users_csv_filepath = "slack_users.csv"
-    if os.path.getsize(users_csv_filepath) == 0:
-        success = write_slack_users_to_csv(client)
-        if success:
-            logger.info("Slack users written to CSV")
-        else:
-            logger.error("Failed to write slack users CSV file")
+    success = fetch_all_active_slack_users_to_csv(client, filename=users_csv_filepath)
+    if success:
+        logger.info("Slack users written to CSV")
     else:
-        logger.info("Slack users already in CSV, not calling slack API")
+        logger.error("Failed to write slack users CSV file")
+
 
 
 '''
