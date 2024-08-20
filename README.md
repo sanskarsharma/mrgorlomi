@@ -61,10 +61,8 @@ This application writes data to a sqlite file so it needs a filesystem. All of t
 
 To make the bot operational for slack, we need to pre-fill/update data for participants table. This is also done at the slack bot startup. Some helpful, self-explanatory scripts :
 
-**How to get data of users from a slack workspace ?**
-
+`How to get data of users from a slack workspace ?` 
 Checkout [scripts/import_slack_users.py](scripts/import_slack_users.py)
 
-**How to pre-fill slack users CSV data in the participants table ?**
-
+`How to pre-fill slack users CSV data in the participants table ?`
 Checkout [scripts/populate_participants.py](scripts/populate_participants.py)
