@@ -49,7 +49,7 @@ class OpenAILLM:
         5. Leave the current team which user belongs to (leave_current_team)
         6. Delete user's team (delete_my_team)
         7. Rename team (rename_team)
-        7. Clarify the user's intent (clarify)
+        8. Clarify the user's intent (clarify)
 
         If the user wants to create a team, figure out the team name from their response or ask if team name is not provided.
         If the user wants to join a team, figure out the team name from their response or ask if team name is not provided. 
