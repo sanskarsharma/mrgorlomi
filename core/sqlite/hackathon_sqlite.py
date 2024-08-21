@@ -134,6 +134,33 @@ class HackathonSQLite(HackathonBase):
             self.conn.rollback()
             raise HackathonError('Some error occured, pls try later')
 
+    def rename_my_team(self, new_team_name: str, username: str, ) -> Tuple[str, str]:
+        if len(new_team_name) > 100:
+            raise HackathonError("New team name must be 100 characters or less.")
+
+        try:
+            # First, find the team where the user is the captain
+            self.cursor.execute("""
+                SELECT team_id, team_name FROM teams 
+                WHERE captain_username = ?
+            """, (username,))
+            
+            team = self.cursor.fetchone()
+            
+            if not team:
+                raise HackathonError("You are not a captain of any team. Only team captain can rename team")
+            
+            team_id, old_team_name = team
+
+            # Rename the team
+            self.cursor.execute("UPDATE teams SET team_name = ? WHERE team_id = ?", (new_team_name, team_id))
+            self.conn.commit()
+            return new_team_name, team_id
+        except sqlite3.Error as e:
+            self.conn.rollback()
+            logger.error(e)
+            raise HackathonError('Some error occured, pls try again.')
+
     def join_team(self, team_name: str, username: str) -> bool:
         try:
 
