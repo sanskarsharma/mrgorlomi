@@ -48,12 +48,14 @@ class OpenAILLM:
         4. List participants who don't belong to any team (get_unassigned_participants)
         5. Leave the current team which user belongs to (leave_current_team)
         6. Delete user's team (delete_my_team)
-        10. Clarify the user's intent (clarify)
+        7. Rename team (rename_team)
+        8. Clarify the user's intent (clarify)
 
         If the user wants to create a team, figure out the team name from their response or ask if team name is not provided.
         If the user wants to join a team, figure out the team name from their response or ask if team name is not provided. 
         If the user wants to add someone to their team or any other team, tell this is is not possible and answer using the ""Context about the hackathon" as context. Make sure you don't categorise this ask as "join_team".
 
+        If the user wants to rename their team or give a new name to their team or edit their team name or change their team name or overwrite their team name, figure out the new "team name" from their response or ask if the new "team name" is not provided. Only team captain can rename their team.
         If the user is inquiring anything about hackathon, answer from the "Context about the hackathon" section.
         If the user is asking about how you can help them, respond with how you can help them based on the actions you can take.
         if the user is asking for suggestions for team mates who can join their team, list the unassigned participants.
@@ -122,6 +124,13 @@ class OpenAILLM:
                     if not success:
                         raise HackathonError("Could not delete team, please try again.")
                     return f'You have deleted your team successfully', num_tokens
+
+                elif llm_response["action"] == "rename_team":
+                    if "team_name" in llm_response and llm_response.get("team_name"):
+                        team_name, team_id = self.get_hackathon_database_connection().rename_my_team(new_team_name=llm_response["team_name"], username=username)
+                        return f'Your team is renamed to {team_name}', num_tokens
+                    else:
+                        return llm_response["message"], num_tokens
 
                 #### Archiving idea bit for now, will open later
                 # elif llm_response["action"] == "add_idea":
