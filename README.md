@@ -15,9 +15,13 @@ pip install -r requirements.txt
 # create a .env file or put OPENAI_API_KEY in environment var as below
 export OPENAI_API_KEY='sk-1234abcd'
 
+# rename data/sample_participants.csv to data/participants.csv (this will ensure you have a valid list of participants on local to test with)
+mv data/sample_participants.csv data/participants.csv
+
 # run streamlit
 streamlit run streamlit_app.py --server.port=80 --server.address=0.0.0.0
 ```
+Streamlit will pick random users from the participants CSV file for each session. You can open multiple browser tabs to test/simulate how this app works for two different users
 
 ## Setup for Slack bot (Supposed prod)
 Assuming a slack app is created, with right permissions and socket mode enabled (This is a little involved, wiki on this soon), you can connect this application to the slack app by deploying it on a VM (or your local machine). Details below.

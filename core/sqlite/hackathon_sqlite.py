@@ -7,6 +7,8 @@ import os
 import sys
 import csv
 
+logging.basicConfig()
+logging.getLogger().setLevel(os.environ.get("LOG_LEVEL", "INFO"))
 
 logger = logging.getLogger(__name__)
 
@@ -79,15 +81,28 @@ class HackathonSQLite(HackathonBase):
             csvreader = csv.DictReader(csvfile)
             to_insert = []
             
+            p_map = {}
             # loop and prepare data
             for i, row in enumerate(csvreader):
                 to_insert.append((row['username'], row['full_name'], row['bio']))
+                p_map[row['username']] = {'full_name': row['full_name'], 'bio': row['bio']}
             
             # insert if not already present
             self.conn.executemany("""
                 INSERT OR IGNORE INTO participants (username, full_name, bio) VALUES (?, ?, ?)
                 """, to_insert)
             self.conn.commit()
+
+            # set the participants map in memory
+            self.participants_map = p_map 
+
+    def get_participant_details(self, username: str) -> Tuple[bool, str, str]:
+        '''
+        returns a tuple of (bool, str, str) which signifies user attributes is_participant, full_name, bio
+        '''
+        if not username in self.participants_map:
+            return False, "", ""
+        return True, self.participants_map[username].get('full_name'), self.participants_map[username].get('bio')
 
     def create_team(self, team_name: str, captain_username: str) -> Tuple[str, str]:
         if len(team_name) > 100:
@@ -239,7 +254,7 @@ class HackathonSQLite(HackathonBase):
             self.cursor.execute("SELECT team_id, captain_username FROM teams WHERE captain_username = ?", (username,))
             team = self.cursor.fetchone()
             if not team:
-                raise HackathonError("Your team does not exist. You are not a captain of any team.")
+                raise HackathonError("Your team does not exist i.e you are not a captain of any team. If you're member in any team, you can opt to leave your current team instead.")
             
             team_id, captain_username = team
 

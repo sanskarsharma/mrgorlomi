@@ -2,25 +2,21 @@ import streamlit as st
 from dotenv import load_dotenv
 import random
 import csv
+from llm.openai import OpenAILLM
 
 load_dotenv()
-
-
-participant_username = None
-with open("data/participants.csv") as f:
-    csv_reader = csv.reader(f)
-    lines = list(csv_reader)
-    line = random.choice(lines)
-    participant_username, participant_full_name = line[0], line[1]
-
-
-from llm.openai import OpenAILLM
 
 llm = OpenAILLM()
 
 if "user_id" in st.session_state:
     user_id = st.session_state["user_id"]
 else:
+    with open("data/participants.csv") as f:
+        csv_reader = csv.reader(f)
+        lines = list(csv_reader)
+        line = random.choice(lines)
+        participant_username, participant_full_name = line[0], line[1]
+
     st.session_state["user_id"] = participant_username
     st.session_state["user_full_name"] = participant_full_name
 
