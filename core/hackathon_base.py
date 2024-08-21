@@ -14,7 +14,7 @@ class HackathonBase(ABC):
     @abstractmethod
     def create_team(team_name: str, captain_username: str) -> Tuple[str, str]:
         '''
-        Create a new team with the given team name, idea and given captain username 
+        Create a new team with the given team name and given captain username 
         and return a tuple of the team name and team id'''
         pass
     
