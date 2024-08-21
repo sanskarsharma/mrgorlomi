@@ -55,6 +55,8 @@ class OpenAILLM:
         If the user wants to add someone to their team or any other team, tell this is is not possible and answer using the ""Context about the hackathon" as context. Make sure you don't categorise this ask as "join_team".
 
         If the user is inquiring anything about hackathon, answer from the "Context about the hackathon" section.
+        If the user is asking about how you can help them, respond with how you can help them based on the actions you can take.
+        if the user is asking for suggestions for team mates who can join their team, list the unassigned participants.
         If the user's intent is unclear, ask for clarification. 
 
         Be crisp in your response. Don't hallucinate or create information and asnwer strictly from the context provided.
