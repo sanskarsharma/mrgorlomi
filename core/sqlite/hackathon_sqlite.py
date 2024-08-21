@@ -161,6 +161,36 @@ class HackathonSQLite(HackathonBase):
             logger.error(e)
             raise HackathonError('Some error occured, pls try again.')
 
+    def list_my_team(self, username: str) -> str:
+        try:
+            self.cursor.execute("""
+                SELECT
+                    t.team_name, 
+                    (SELECT full_name FROM participants WHERE username = t.captain_username) as captain, 
+                    p.full_name
+                FROM teams t
+                JOIN participants p ON t.team_id = p.team_id
+                WHERE t.team_id = (SELECT team_id FROM participants WHERE username = ?)
+            """, (username,))
+            rows = self.cursor.fetchall()
+            
+            if not rows:
+                return "You are not in any team."
+
+            team_name = rows[0][0]
+            captain = rows[0][1]
+            members = [row[2] for row in rows if row[2] != captain]
+
+            team_info = [{
+                "team_name": team_name,
+                "captain": captain,
+                "members": members
+            }]
+
+            return self.__get_formatted_list_team_text(team_info, my_team=True)
+        except sqlite3.Error as e:
+            raise HackathonError('Some error occurred, please try later')
+
     def join_team(self, team_name: str, username: str) -> bool:
         try:
 
@@ -201,13 +231,13 @@ class HackathonSQLite(HackathonBase):
         self.cursor.execute("SELECT COUNT(*) FROM participants WHERE team_id = ?", (team_id,))
         return self.cursor.fetchone()[0]
 
-    def __get_formatted_list_team_text(self, teams: List[Dict]) -> str:
+    def __get_formatted_list_team_text(self, teams: List[Dict], my_team: bool) -> str:
         if not teams:
             return "No teams found."
-        message = "Here are the current teams:\n\n"
+        message = "Here are the details of all the teams that have been registered:\n\n" if not my_team else "Here is the detail of your team:\n\n"
         for i, team in enumerate(teams, 1):
-            message += f"{i}. Team: {team['team_name']}\n\n"
-            message += f"   Captain: {team['captain']}\n\n"
+            message += f"{i}. Team: {team['team_name']}\n \n"
+            message += f"   Captain: {team['captain']}\n \n"
             
             if team['members']:
                 message += "   Members:\n"
@@ -216,7 +246,7 @@ class HackathonSQLite(HackathonBase):
             else:
                 message += "   No additional members.\n"
             
-            message += "\n"  # Add an extra newline for spacing between teams
+            message += "\n\n"  # Add an extra newline for spacing between teams
 
         return message.strip()  # Remove trailing newline
 
@@ -241,7 +271,7 @@ class HackathonSQLite(HackathonBase):
                     teams[team_name]["members"].append(member)
             
             team_list = [{"team_name": k, **v} for k, v in teams.items()]
-            return self.__get_formatted_list_team_text(team_list)
+            return self.__get_formatted_list_team_text(team_list, my_team=False)
         except sqlite3.Error as e:
             raise HackathonError('Some error occured, pls try later')
 
